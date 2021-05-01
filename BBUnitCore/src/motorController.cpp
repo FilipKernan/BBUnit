@@ -25,5 +25,4 @@ void MotorController::write(int direction, int pwmSpeed){
  * NOTE: ensure controlers are controled by timers & only enable one type
  *          of control at a time
  * 
- * 
- * /
+ */

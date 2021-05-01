@@ -1,8 +1,11 @@
 #include "comms.h"
+#include <Arduino.h>
 
 Comms::Comms(int tx, int rx, int baud)
 {
     serial = new SoftwareSerial(rx, tx);
+    pinMode(rx, INPUT);
+    pinMode(tx, OUTPUT);
     baudRate = baud;
 
 }
@@ -20,7 +23,7 @@ void Comms::init() {
 int Comms::write(String msg) {
     int msgSize = msg.length() + 1;
     if (serial->availableForWrite() <= msgSize) {
-        serial->print(msg);
+        serial->println(msg);
         return 0;
     }
     return -1;
@@ -28,6 +31,7 @@ int Comms::write(String msg) {
 
 
 String Comms::read() {
+    serial->listen();
     int size = serial->available();
     if (size) {
         char msg[size + 1];
