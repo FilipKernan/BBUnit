@@ -11,6 +11,7 @@
 volatile long leftEncoderCount = 0;
 volatile bool lastLeftA = 0;
 volatile bool lastLeftB = 0;
+void leftEncoderChange();
 
 
 #define RIGHT_MOTOR_DIR 50
@@ -21,6 +22,7 @@ volatile bool lastLeftB = 0;
 volatile long rightEncoderCount = 0;
 volatile bool lastRightA = 0;
 volatile bool lastRightB = 0;
+void rightEncoderChange();
 
 
 #define FRONT_MOTOR_DIR 51
@@ -31,7 +33,7 @@ volatile bool lastRightB = 0;
 volatile long frontEncoderCount = 0;
 volatile bool lastFrontA = 0;
 volatile bool lastFrontB = 0;
-
+void frontEncoderChange();
 
 #define BACK_MOTOR_DIR 52
 #define BACK_MOTOR_PWM 5
@@ -41,3 +43,4 @@ volatile bool lastFrontB = 0;
 volatile long backEncoderCount = 0;
 volatile bool lastBackA = 0;
 volatile bool lastBackB = 0;
+void backEncoderChange();

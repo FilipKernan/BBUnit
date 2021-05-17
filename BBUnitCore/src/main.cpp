@@ -6,7 +6,7 @@
 
 MotorController* leftMotor;
 MotorController* rightMotor;
-SoftwareSerial* comms;
+Comms* comms;
 
 int leftMotorDir = 53;
 int leftMotorPwm = 10;
@@ -14,21 +14,54 @@ int leftMotorPwm = 10;
 int rightMotorDir = 50;
 int rightMotorPwm = 9;
 
-int commsTx = 15;
-int commsRx = 14;
+int commsTx = 11;
+int commsRx = 10;
 
 unsigned int targetTime = 0;
 
 uint8_t motorPower = 0;
 
+/***
+ * header:			01	10		11
+ * 		sensor : gyro, encoder, plain text 2 bit
+ * 		sensor #: 3 bits
+ * 		axis for gyro: 2 bits
+ * 		extra 0 bit
+ * 	8 byte message
+ *  1 byte of 0 if done, 1 if contunued in next message
+ *  
+ * 
+ */
+/***
+ * header: 
+ * 		message type: 1 byte
+ * 		3 bits:
+ * 			direct chassis power
+ * 			direct head power
+ * 			chassis position control
+ * 			chassis velocity control
+ * 			head position control
+ * 			other message
+ * 		
+ * 
+ *  motor power 1: 1 byte	
+ *  time to run 1: 1 byte
+ * 	motor power 2: 1 byte	
+ *  time to run 2: 1 byte
+ *  motor power 3: 1 byte	
+ *  time to run 3: 1 byte
+ *  motor power 4: 1 byte	
+ *  time to run 4: 1 byte
+ * 	1 byte of 0 if done, 1 if contunued in next message
+ */
 
 /***
  * TODO: 
  * Today
- * 		Attach interupts
- * 		Set up ISRs
- * 		output data from encoders
+ * 		Test encoder output
+ * 		test the bluetooth
  * Tommorow
+ * 		set up packets
  * 		Read from gyro
  * 		
  * 
@@ -39,10 +72,11 @@ void setup() {
 	// leftMotor = new MotorController(leftMotorDir, leftMotorPwm);
 	// rightMotor = new MotorController(rightMotorDir, rightMotorPwm);
 
-	// comms = new SoftwareSerial(commsTx, commsRx);
-	// comms->begin(9600);
+	comms = new Comms(commsTx, commsRx, 9600);
+	comms->init();
 	// comms->init();
 	Serial.begin(9600);
+
 	Serial.println("booting up");
 	targetTime = millis();
 
@@ -54,38 +88,20 @@ void setup() {
 
 
 
-	attachInterrupt(digitalPinToInterrupt(LEFT_MOTOR_INT), leftEncoderChange, CHANGE);
-	fastPinMode(LEFT_MOTOR_A, INPUT);
-	fastPinMode(LEFT_MOTOR_B, INPUT);
+	// attachInterrupt(digitalPinToInterrupt(LEFT_MOTOR_INT), leftEncoderChange, CHANGE);
+	// fastPinMode(LEFT_MOTOR_A, INPUT);
+	// fastPinMode(LEFT_MOTOR_B, INPUT);
 
 }
 
 void loop() {
 	// put your main code here, to run repeatedly:
-	// Serial.println(comms->available());
-	// if (comms->available()){
-	// 	Serial.println(comms->read());
-	// }
-	// TODO: move this logic into the comms file, and standerdize packet
-	// if (msg.length()) {
-	// 	Serial.println(msg);
-	// 	int commaCount = 0;
-	// 	for (unsigned int i = 0; i < msg.length(); ++i ){ 
-	// 		if (msg.charAt(i) == ',') {
-	// 			commaCount++;
-	// 		}
-	// 	}
-	// 	String commands[commaCount + 1];
-	// 	for (int i = 0; i < commaCount; ++i) {
-	// 		int commaIndex = msg.indexOf(',');
-	// 		if (commaIndex != -1) {
-	// 			commands[i] = msg.substring(0, commaIndex);
-	// 			msg.remove(0, commaIndex + 1);
-	// 		} else {
-	// 			commands[i] = msg;
-	// 		}
-			
-	// 	}
+	String value = comms->read();
+	if (value != "") {
+		Serial.println(value );	
+	}
+	
+	
 	// 	int msSec = commands[0].toInt();
 	// 	// targetTime = millis() + msSec;
 	// 	motorPower = commands[1].toInt();
@@ -105,11 +121,9 @@ void loop() {
 	// 	rightMotor->write(LOW, 0);
 		
 	// }
-	// int status = comms->println("alive");
+	int status = comms->write("alive");
 
-	// Serial.print("I am alive, ");
-	// Serial.print(status);
-	// Serial.print("\n");
+
 
 }
 

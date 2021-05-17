@@ -2,9 +2,11 @@
 #include <Arduino.h>
 
 
-MotorController::MotorController(int dir, int pwm) {
+MotorController::MotorController(int dir, int pwm, uint8_t num, long* encoderCount) {
     this->dirPin = dir;
     this->pwmPin = pwm;
+    this->num = num;
+    this->encoderCount = encoderCount;
     pinMode(pwm, OUTPUT);
     pinMode(dir, OUTPUT);
 }
@@ -26,3 +28,19 @@ void MotorController::write(int direction, int pwmSpeed){
  *          of control at a time
  * 
  */
+
+long MotorController::getEncoderCount() {
+    return *(this->encoderCount);
+}
+
+char* MotorController::encoderToComms() {
+    char header = 0x00;
+    header = header | (0b10 << 6);
+    header = header | (this->num << 3);
+    char buff[10];
+    buff[0] = header;
+    for (int i = 1; i < 9; i++) {
+        buff[i] = ((*this->encoderCount) >> ((i - 1) * 8)) & 0xFF;
+    }
+    buff[9] = 0x00
+}

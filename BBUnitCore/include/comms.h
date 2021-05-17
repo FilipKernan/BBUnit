@@ -9,7 +9,7 @@ private:
     SoftwareSerial* serial;
     int baudRate;
 public:
-    int write(String); // null terminated
+    int write(char*); // null terminated
     String read();
     void init();
     Comms(int tx, int rx, int baud);
