@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 
-MotorController::MotorController(int dir, int pwm, uint8_t num, long* encoderCount) {
+MotorController::MotorController(int dir, int pwm, uint8_t num, volatile long* encoderCount) {
     this->dirPin = dir;
     this->pwmPin = pwm;
     this->num = num;
@@ -17,7 +17,7 @@ MotorController::~MotorController() {
 
 void MotorController::write(int direction, int pwmSpeed){
     digitalWrite(this->dirPin, direction);
-    analogWrite(this->pwmPin, pwmSpeed);
+    // analogWrite(this->pwmPin, pwmSpeed); need to use ledcWrite()
 }
 
 /***
@@ -42,5 +42,5 @@ char* MotorController::encoderToComms() {
     for (int i = 1; i < 9; i++) {
         buff[i] = ((*this->encoderCount) >> ((i - 1) * 8)) & 0xFF;
     }
-    buff[9] = 0x00
+    buff[9] = 0x00;
 }
