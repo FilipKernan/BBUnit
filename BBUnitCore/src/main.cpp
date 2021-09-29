@@ -11,7 +11,6 @@
 // MotorController* rightMotor;
 Comms* comms;
 
-const int serverPort = 1234;
 const int baudrate = 115200;
 const int rs_config = SERIAL_8N1;
   
@@ -27,6 +26,8 @@ int commsRx = 10;
 unsigned int targetTime = 0;
 
 uint8_t motorPower = 0;
+
+WiFiServer wifiServer(80);
 
 /***
  * header:			01	10		11, 			00
@@ -103,7 +104,7 @@ void setup() {
 
 	Serial.println("booting up");
 	targetTime = millis();
-	WiFi.mode(WIFI_STA);
+	// WiFi.mode(WIFI_STA);
 	WiFi.begin(ssid, password);
 
 	while (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -167,49 +168,54 @@ void setup() {
 	// leftA.mode(INPUT);
 	// leftB.mode(INPUT);
 
-	server = WiFiServer(serverPort);
-	server.begin();
+
+	wifiServer.begin();
 	delay(1000);
 
 }
 
 void loop() {
-	char* readPointer = comms->read();
-	if (readPointer != NULL) {
-		Serial.println("packet detected, writing to motors");
-		Serial.println(readPointer);
-		// rightMotor->write(LOW, *(readPointer + 3));
-		// leftMotor->write(HIGH, *(readPointer + 7));
-		// targetTime = millis() + 10 * (*(readPointer + 2));
+	// char* readPointer = comms->read();
+	// if (readPointer != NULL) {
+	// 	Serial.println("packet detected, writing to motors");
+	// 	Serial.println(readPointer);
+	// 	// rightMotor->write(LOW, *(readPointer + 3));
+	// 	// leftMotor->write(HIGH, *(readPointer + 7));
+	// 	// targetTime = millis() + 10 * (*(readPointer + 2));
 
-	}
+	// }
 	
 	ArduinoOTA.handle();
 
 	// wait for client
-  	WiFiClient client = server.available();
-	if (!client)
-	return;
+	// Serial.println("waiting for client");
+  	WiFiClient client = wifiServer.available();
 	
-	while (client.connected()) {
-	int size = 0;
-	
-	// read data from wifi client and send to serial
-	while ((size = client.available())) {
-			size = (size >= BUFFER_SIZE ? BUFFER_SIZE : size);
-			client.read(buff, size);
-			Serial.write(buff, size);
-			Serial.flush();
+	if (client){
+		// this while loop is nessary, have it run on the second core so that it does not harm everything
+		while (client.connected()) {
+			// Serial.println("connected to client");
+			// read data from wifi client and send to serial
+			bool responce = false;
+			while (client.available() > 0) {
+					// size = (size >= BUFFER_SIZE ? BUFFER_SIZE : size);
+					char c = client.read();
+					Serial.write(c);
+					// Serial.flush();
+					responce = true;
+			}
+			delay(10);
+		
+			// read data from serial and send to wifi client
+			while (responce) {
+					char c = Serial.read();
+					client.write("hello there");
+					client.flush();
+					responce = false;
+			}
+		}
 	}
 	
-	// read data from serial and send to wifi client
-	while ((size = Serial.available())) {
-			size = (size >= BUFFER_SIZE ? BUFFER_SIZE : size);
-			Serial.readBytes(buff, size);
-			client.write(buff, size);
-			client.flush();
-	}
-	}
    client.stop();
 	// while (comms->serial->available())	{
 	// 	String power = comms->serial->readString();
