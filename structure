@@ -19,7 +19,8 @@ https://www.hackster.io/techbase_group/arduino-esp32-serial-port-to-tcp-converte
 
 https://esp32.com/viewtopic.php?t=6707
 
-
+Socket programing for raw connection
+https://stackoverflow.com/questions/48005482/python-command-to-open-a-raw-session
 
 Use this one -----
 https://everythingesp.com/esp32-socket-server/
