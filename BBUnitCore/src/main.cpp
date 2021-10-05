@@ -10,24 +10,31 @@
 // MotorController* leftMotor;
 // MotorController* rightMotor;
 Comms* comms;
-
+TaskHandle_t CommsTask;
+TaskHandle_t RobotTask;
 const int baudrate = 115200;
 const int rs_config = SERIAL_8N1;
   
-// reading buffor config
-#define BUFFER_SIZE 1024
+const char* ssid     = "BR-95";
+const char* password = "StormBlessed";
 
-WiFiServer server;
-byte buff[BUFFER_SIZE];
-
-int commsTx = 11;
-int commsRx = 10;
 
 unsigned int targetTime = 0;
 
 uint8_t motorPower = 0;
 
 WiFiServer wifiServer(80);
+
+static SemaphoreHandle_t commsMutex;
+#define BUFFER_SIZE 10
+uint8_t commsFlag = 0; //0 if buffer can be overwriten from remote, 1 if buffer needs to be read, 2 if buffer needs to be sent
+char buffer[BUFFER_SIZE];
+/**
+ * In order to take the mutex 
+ * xSemaphoreTake(commsMutex, portMAX_DELAY);
+ * In order to release the mutex
+ * xSemaphoreGive(commsMutex);
+ */
 
 /***
  * header:			01	10		11, 			00
@@ -96,22 +103,15 @@ void setup() {
 	// leftMotor = new MotorController(LEFT_MOTOR_DIR, LEFT_MOTOR_PWM, 3, &leftEncoderCount);
 	// rightMotor = new MotorController(RIGHT_MOTOR_DIR, RIGHT_MOTOR_PWM, 1, &rightEncoderCount);
 
-	// comms = new Comms(commsRx, commsTx, 9600);
-	comms->init();
-	comms->write("I am alive");
-	// comms->init();
-	Serial.begin(9600);
+	commsMutex = xSemaphoreCreateMutex();
+	Serial.begin(115200);
 
 	Serial.println("booting up");
 	targetTime = millis();
 	// WiFi.mode(WIFI_STA);
-	WiFi.begin(ssid, password);
+	WiFi.softAP(ssid, password);
 
-	while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-		Serial.println("Connection Failed! Rebooting...");
-		delay(5000);
-		ESP.restart();
-	}
+	IPAddress IP = WiFi.softAPIP();
 
 
 	
@@ -150,7 +150,7 @@ void setup() {
 
 	Serial.println("Ready");
 	Serial.print("IP address: ");
-	Serial.println(WiFi.localIP());
+	Serial.println(IP);
 
 	// attachInterrupt(digitalPinToInterrupt(FRONT_MOTOR_INT), frontEncoderChange, CHANGE);
 	// frontA.mode(INPUT);
@@ -170,9 +170,110 @@ void setup() {
 
 
 	wifiServer.begin();
-	delay(1000);
+
+	// create tasks
+
+	  //create a task that will be executed in the Task1code() function, with priority 1 and executed on core 0
+	xTaskCreatePinnedToCore(
+						CommsTaskLoop,   /* Task function. */
+						"CommsTask",     /* name of task. */
+						10000,       /* Stack size of task */
+						NULL,        /* parameter of the task */
+						1,           /* priority of the task */
+						&CommsTask,      /* Task handle to keep track of created task */
+						0);          /* pin task to core 0 */                  
+	delay(500); 
+
+	//create a task that will be executed in the Task2code() function, with priority 1 and executed on core 1
+	xTaskCreatePinnedToCore(
+						RobotTaskLoop,   /* Task function. */
+						"RobotTask",     /* name of task. */
+						10000,       /* Stack size of task */
+						NULL,        /* parameter of the task */
+						1,           /* priority of the task */
+						&RobotTask,      /* Task handle to keep track of created task */
+						1);          /* pin task to core 1 */
+	delay(500); 
+
+	esp_task_wdt_init(200, 0);
+	esp_task_wdt_add(CommsTask);
+	esp_task_wdt_add(RobotTask);
+
 
 }
+
+void RobotTaskLoop(void* paramaters) {
+	while(true) {
+		ArduinoOTA.handle();
+		// comms test
+		xSemaphoreTake(commsMutex, portMAX_DELAY);
+		if (commsFlag == 1) {
+
+			Serial.write(buffer, BUFFER_SIZE);
+
+			buffer[0] = 'A';
+			buffer[1] = 'l';
+			buffer[2] = 'i';
+			buffer[3] = 'v';
+			buffer[4] = 'e';
+			buffer[5] = '\n';
+
+			Serial.write(buffer, BUFFER_SIZE);
+			commsFlag = 2;
+			
+		}
+		xSemaphoreGive(commsMutex);
+		esp_task_wdt_reset();
+	}
+}
+
+
+void CommsTaskLoop(void* paramaters) {
+	while(true) {
+		WiFiClient client = wifiServer.available();
+	
+			if (client){
+				// this while loop is nessary, have it run on the second core so that it does not harm everything
+				while (client.connected()) {
+					// Serial.println("connected to client");
+					// read data from wifi client and send to serial
+					uint8_t bufferIndex = 0;
+					xSemaphoreTake(commsMutex, portMAX_DELAY);
+					if (commsFlag == 0) {
+						for (int i = 0; i < BUFFER_SIZE; i++) {
+							buffer[i] = 0;
+						}
+						while (client.available() > 0) {
+							
+							buffer[bufferIndex] = client.read();
+							bufferIndex++;
+							// Serial.println(buffer[bufferIndex]);
+							commsFlag = 1;
+						}
+					} else if (commsFlag == 2) {
+						// for (int i = 0; i < BUFFER_SIZE; i++) {
+						// 	Serial.print(buffer);
+						// 	client.write(buffer);
+						// }
+						Serial.write(buffer, BUFFER_SIZE);
+						client.write(buffer, BUFFER_SIZE);
+						client.flush();
+						commsFlag = 0;
+					}
+					xSemaphoreGive(commsMutex);
+					
+
+					
+				
+					
+				}
+			}
+			
+		client.stop();
+		esp_task_wdt_reset();
+	}
+}
+
 
 void loop() {
 	// char* readPointer = comms->read();
@@ -185,38 +286,11 @@ void loop() {
 
 	// }
 	
-	ArduinoOTA.handle();
+
 
 	// wait for client
 	// Serial.println("waiting for client");
-  	WiFiClient client = wifiServer.available();
-	
-	if (client){
-		// this while loop is nessary, have it run on the second core so that it does not harm everything
-		while (client.connected()) {
-			// Serial.println("connected to client");
-			// read data from wifi client and send to serial
-			bool responce = false;
-			while (client.available() > 0) {
-					// size = (size >= BUFFER_SIZE ? BUFFER_SIZE : size);
-					char c = client.read();
-					Serial.write(c);
-					// Serial.flush();
-					responce = true;
-			}
-			delay(10);
-		
-			// read data from serial and send to wifi client
-			while (responce) {
-					char c = Serial.read();
-					client.write("hello there");
-					client.flush();
-					responce = false;
-			}
-		}
-	}
-	
-   client.stop();
+  	
 	// while (comms->serial->available())	{
 	// 	String power = comms->serial->readString();
 	// 	Serial.println(power);

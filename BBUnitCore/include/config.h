@@ -45,5 +45,10 @@ volatile bool lastBackA = 0;
 volatile bool lastBackB = 0;
 void backEncoderChange();
 
-const char* ssid = "Nighthawk-2.4G";
-const char* password = "9PoundHammer";
+// const char* ssid = "Nighthawk-2.4G";
+// const char* password = "9PoundHammer";
+
+
+void RobotTaskLoop(void* paramaters);
+void CommsTaskLoop(void* paramaters);
+#include <esp_task_wdt.h>

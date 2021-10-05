@@ -7,17 +7,10 @@
  -comms
     Utilize BT
     Figure out OTA
-https://github.com/espressif/arduino-esp32/blob/master/libraries/ArduinoOTA/examples/BasicOTA/BasicOTA.ino
-https://docs.platformio.org/en/latest/platforms/espressif32.html#over-the-air-ota-update
 
-https://www.arduino.cc/en/Reference/WiFi101BeginProvision
-https://web-relays.com/en/blog/esp8266-multiple-ssids-using-one-esp8266-module/
 
 
 https://platformio.org/lib/show/1266/RemoteDebug
-https://www.hackster.io/techbase_group/arduino-esp32-serial-port-to-tcp-converter-via-wifi-66d341
-
-https://esp32.com/viewtopic.php?t=6707
 
 Socket programing for raw connection
 https://stackoverflow.com/questions/48005482/python-command-to-open-a-raw-session
@@ -26,7 +19,8 @@ https://stackoverflow.com/questions/48005482/python-command-to-open-a-raw-sessio
 Creating a network
 https://randomnerdtutorials.com/esp32-access-point-ap-web-server/
 
-
+Shunt to seperate core with shared buffer and read flag
+https://www.digikey.com/en/maker/projects/introduction-to-rtos-solution-to-part-6-freertos-mutex-example/c6e3581aa2204f1380e83a9b4c3807a6
 
 Use this one -----
 https://everythingesp.com/esp32-socket-server/
