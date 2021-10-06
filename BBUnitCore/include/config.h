@@ -1,5 +1,5 @@
 // interupt pins 18, 19, 2, 3
-
+#include <esp_task_wdt.h>
 
 
 #define LEFT_MOTOR_DIR 53
@@ -45,10 +45,11 @@ volatile bool lastBackA = 0;
 volatile bool lastBackB = 0;
 void backEncoderChange();
 
-// const char* ssid = "Nighthawk-2.4G";
-// const char* password = "9PoundHammer";
+const char* ssid     = "BR-95";
+const char* password = "StormBlessed";
+
+#define BUFFER_SIZE 32
 
 
 void RobotTaskLoop(void* paramaters);
 void CommsTaskLoop(void* paramaters);
-#include <esp_task_wdt.h>

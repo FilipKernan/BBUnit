@@ -15,12 +15,45 @@ https://platformio.org/lib/show/1266/RemoteDebug
 Socket programing for raw connection
 https://stackoverflow.com/questions/48005482/python-command-to-open-a-raw-session
 
+Remote control
+  - Direct Serial 
+  - Send commands
+  - Interpret data
+  - might need to implement tcp
 
-Creating a network
-https://randomnerdtutorials.com/esp32-access-point-ap-web-server/
+-- need standerd packet that is 32 bytes
+    both command and data
 
-Shunt to seperate core with shared buffer and read flag
-https://www.digikey.com/en/maker/projects/introduction-to-rtos-solution-to-part-6-freertos-mutex-example/c6e3581aa2204f1380e83a9b4c3807a6
+
+Classes
+  - Current Command Data
+      - Power to motors
+      - durration
+  - PWM controler
+  - Sound Contoler
+  - Logger
+  - SD card 
+  - LCD
+  - Moter Contoller
+    - pointer to encoder count
+    - write power method
+    - read power
+  - Odometry
+    - read current encoders
+    - read current orrientation
+    - read delta distance
+
+TODO:
+  - map regesters for interupts
+      https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/peripherals/gpio.html 
+			gpio_get_level()
+  - create interupts functions for the encoders
+    - write to pointers
+  - find class for pwm controler
+  - rework motor contorler class to work
+
+  -- goal is to remotely write power to all motors and get encoder data
+
 
 Use this one -----
 https://everythingesp.com/esp32-socket-server/

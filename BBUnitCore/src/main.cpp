@@ -13,12 +13,7 @@ Comms* comms;
 TaskHandle_t CommsTask;
 TaskHandle_t RobotTask;
 const int baudrate = 115200;
-const int rs_config = SERIAL_8N1;
   
-const char* ssid     = "BR-95";
-const char* password = "StormBlessed";
-
-
 unsigned int targetTime = 0;
 
 uint8_t motorPower = 0;
@@ -26,15 +21,9 @@ uint8_t motorPower = 0;
 WiFiServer wifiServer(80);
 
 static SemaphoreHandle_t commsMutex;
-#define BUFFER_SIZE 10
 uint8_t commsFlag = 0; //0 if buffer can be overwriten from remote, 1 if buffer needs to be read, 2 if buffer needs to be sent
 char buffer[BUFFER_SIZE];
-/**
- * In order to take the mutex 
- * xSemaphoreTake(commsMutex, portMAX_DELAY);
- * In order to release the mutex
- * xSemaphoreGive(commsMutex);
- */
+
 
 /***
  * header:			01	10		11, 			00
@@ -210,6 +199,7 @@ void RobotTaskLoop(void* paramaters) {
 		if (commsFlag == 1) {
 
 			Serial.write(buffer, BUFFER_SIZE);
+
 
 			buffer[0] = 'A';
 			buffer[1] = 'l';
