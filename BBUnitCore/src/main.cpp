@@ -1,11 +1,12 @@
 #include <Arduino.h>
+#include "config.h"
 #include "comms.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 // #include "motorController.h"
-#include "config.h"
+
 
 // MotorController* leftMotor;
 // MotorController* rightMotor;
@@ -18,49 +19,29 @@ unsigned int targetTime = 0;
 
 uint8_t motorPower = 0;
 
+
+
+
+volatile long leftEncoderCount = 0;
+volatile bool lastLeftA = 0;
+volatile bool lastLeftB = 0;
+
+volatile long rightEncoderCount = 0;
+volatile bool lastRightA = 0;
+volatile bool lastRightB = 0;
+
+volatile long frontEncoderCount = 0;
+volatile bool lastFrontA = 0;
+volatile bool lastFrontB = 0;
+
+volatile long backEncoderCount = 0;
+volatile bool lastBackA = 0;
+volatile bool lastBackB = 0;
+
+const char* ssid     = "BR-95";
+const char* password = "StormBlessed";
+
 WiFiServer wifiServer(80);
-
-static SemaphoreHandle_t commsMutex;
-uint8_t commsFlag = 0; //0 if buffer can be overwriten from remote, 1 if buffer needs to be read, 2 if buffer needs to be sent
-char buffer[BUFFER_SIZE];
-
-
-/***
- * header:			01	10		11, 			00
- * 		sensor : gyro, encoder, plain text 2 bit, command ||| command and plain text have the rest of the header filled with 0s
- * 		sensor #: 3 bits
- * 		axis for gyro: 2 bits
- * 		extra 0 bit
- * 	Command messages
- * 		Reboot message with all 1s
- * 		enter ota update - message with alternating 10s
- * 	8 byte message
- *  1 byte of 0 if done, 1 if contunued in next message
- *  
- * 
- */
-/***
- * header: 
- * 		message type: 1 byte
- * 		3 bits:
- * 			direct chassis power
- * 			direct head power
- * 			chassis position control
- * 			chassis velocity control
- * 			head position control
- * 			other message
- * 		
- * 
- *  motor power 1: 1 byte, 	
- *  time to run 1: 1 byte
- * 	motor power 2: 1 byte	
- *  time to run 2: 1 byte
- *  motor power 3: 1 byte	
- *  time to run 3: 1 byte
- *  motor power 4: 1 byte	
- *  time to run 4: 1 byte
- * 	1 byte of 0 if done, 1 if contunued in next message
- */
 
 /***
  * TODO: 
@@ -88,21 +69,25 @@ char buffer[BUFFER_SIZE];
 void setup() {
 
 
+
 	// put your setup code here, to run once:
 	// leftMotor = new MotorController(LEFT_MOTOR_DIR, LEFT_MOTOR_PWM, 3, &leftEncoderCount);
 	// rightMotor = new MotorController(RIGHT_MOTOR_DIR, RIGHT_MOTOR_PWM, 1, &rightEncoderCount);
 
+	comms = new Comms();
 	commsMutex = xSemaphoreCreateMutex();
-	Serial.begin(115200);
+	writeMutex = xSemaphoreCreateMutex();
+	readMutex = xSemaphoreCreateMutex();
+	Serial.begin(9600);
 
 	Serial.println("booting up");
 	targetTime = millis();
-	// WiFi.mode(WIFI_STA);
+	// WiFi.begin();
 	WiFi.softAP(ssid, password);
 
 	IPAddress IP = WiFi.softAPIP();
 
-
+	wifiServer.begin();
 	
 	ArduinoOTA.setHostname("br95");
 	ArduinoOTA.setPassword("StormBlessed");
@@ -137,6 +122,7 @@ void setup() {
 
   	ArduinoOTA.begin();
 
+
 	Serial.println("Ready");
 	Serial.print("IP address: ");
 	Serial.println(IP);
@@ -158,7 +144,7 @@ void setup() {
 	// leftB.mode(INPUT);
 
 
-	wifiServer.begin();
+	
 
 	// create tasks
 
@@ -184,7 +170,7 @@ void setup() {
 						1);          /* pin task to core 1 */
 	delay(500); 
 
-	esp_task_wdt_init(200, 0);
+	esp_task_wdt_init(2000000, 0);
 	esp_task_wdt_add(CommsTask);
 	esp_task_wdt_add(RobotTask);
 
@@ -196,22 +182,18 @@ void RobotTaskLoop(void* paramaters) {
 		ArduinoOTA.handle();
 		// comms test
 		xSemaphoreTake(commsMutex, portMAX_DELAY);
-		if (commsFlag == 1) {
 
-			Serial.write(buffer, BUFFER_SIZE);
-
-
-			buffer[0] = 'A';
-			buffer[1] = 'l';
-			buffer[2] = 'i';
-			buffer[3] = 'v';
-			buffer[4] = 'e';
-			buffer[5] = '\n';
-
-			Serial.write(buffer, BUFFER_SIZE);
-			commsFlag = 2;
-			
+		if (comms->newData){
+			// Serial.write(comms->read(), BUFFER_SIZE);
 		}
+		
+
+		xSemaphoreGive(commsMutex);
+
+		char toWrite[BUFFER_SIZE] = {'A', 'l', 'i', 'v', 'e', 'A', 'n', 'd', 'K', 'i', 'c', 'k', 'i', 'n', 'g', '!'};
+		xSemaphoreTake(commsMutex, portMAX_DELAY);
+
+		comms->write(toWrite);
 		xSemaphoreGive(commsMutex);
 		esp_task_wdt_reset();
 	}
@@ -220,44 +202,24 @@ void RobotTaskLoop(void* paramaters) {
 
 void CommsTaskLoop(void* paramaters) {
 	while(true) {
+		
 		WiFiClient client = wifiServer.available();
 	
-			if (client){
-				// this while loop is nessary, have it run on the second core so that it does not harm everything
-				while (client.connected()) {
-					// Serial.println("connected to client");
-					// read data from wifi client and send to serial
-					uint8_t bufferIndex = 0;
-					xSemaphoreTake(commsMutex, portMAX_DELAY);
-					if (commsFlag == 0) {
-						for (int i = 0; i < BUFFER_SIZE; i++) {
-							buffer[i] = 0;
-						}
-						while (client.available() > 0) {
-							
-							buffer[bufferIndex] = client.read();
-							bufferIndex++;
-							// Serial.println(buffer[bufferIndex]);
-							commsFlag = 1;
-						}
-					} else if (commsFlag == 2) {
-						// for (int i = 0; i < BUFFER_SIZE; i++) {
-						// 	Serial.print(buffer);
-						// 	client.write(buffer);
-						// }
-						Serial.write(buffer, BUFFER_SIZE);
-						client.write(buffer, BUFFER_SIZE);
-						client.flush();
-						commsFlag = 0;
-					}
-					xSemaphoreGive(commsMutex);
-					
+		if (client){
+			// this while loop is nessary, have it run on the second core so that it does not harm everything
+			while (client.connected()) {
+				// Serial.println("connected to client");
+				// read data from wifi client and send to serial
+				xSemaphoreTake(commsMutex, portMAX_DELAY);
 
-					
+				comms->relay(&client);
+				xSemaphoreGive(commsMutex);
+
+				esp_task_wdt_reset();
+			
 				
-					
-				}
 			}
+		}
 			
 		client.stop();
 		esp_task_wdt_reset();

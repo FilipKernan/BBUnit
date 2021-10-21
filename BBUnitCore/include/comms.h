@@ -2,22 +2,23 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <WebSerial.h>
-#include <string.h>
 #include "config.h"
 
 
 class Comms
 {
 private:
-    int tx;
-    int rx;
+    uint8_t commsFlag; //0 if buffer can be overwriten from remote, 1 if buffer needs to be read, 2 if buffer needs to be sent
     char buffer[BUFFER_SIZE];
-    static void recvMsg(uint8_t *data, size_t len);
+    char localReadBuffer[BUFFER_SIZE];
+    char localWriteBuffer[BUFFER_SIZE];
 public:
     int write(const char*); // null terminated
     char* read();
+    void relay(WiFiClient* client);
     void init();
-    Comms(int tx, int rx, int baud);
+    int newData;
+    Comms();
     ~Comms();
     
 };

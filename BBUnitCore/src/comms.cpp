@@ -5,9 +5,15 @@
 // AsyncWebServer server(80);
 
 
-Comms::Comms(int tx, int rx, int baud)
+Comms::Comms()
 {
-    baudRate = baud;
+    commsFlag = 0;
+    newData = 0;
+    for (int i = 0; i < BUFFER_SIZE; i++) {
+        localWriteBuffer[i] = 0;
+        buffer[i] = 0;
+        localReadBuffer[i] = 0;
+    }
 
 }
 
@@ -17,43 +23,72 @@ Comms::~Comms()
 }
 
 void Comms::init() {
-    // WebSerial.begin(&server);
-    /* Attach Message Callback */
-    // WebSerial.msgCallback(Comms::recvMsg);
-    // server.begin();
+    
 }
-
+// Are You Alive??
 // TODO: change to use write instead of print, also define packet
 int Comms::write(const char* buff) {
-    // int msgSize = 10;
-    // // if (serial->availableForWrite() <= msgSize) {
-    // //     // serial->write(buff, msgSize);
-    // //     return 0;
-    // // }
-    // serial->println(buff);
+    // xSemaphoreTake(commsMutex, portMAX_DELAY);
+
+    for (int i = 0; i < BUFFER_SIZE; i++){
+        localWriteBuffer[i] = *(buff + i);
+    }
+    newData = 1;
+    // xSemaphoreGive(commsMutex);
+
+
     return 0;
 }
 
 
 char* Comms::read() {
-    // int size = serial->available();
-    // if (size) {
-    //     msg = new char[size + 1];
-    //     for (int i = 0; i<10; i++) {
-    //         msg[i] = serial->read();
-    //     }
-    //     return msg;
-    // }
-    return NULL;
+    newData = 0;
+    return this->localReadBuffer;
+}
+
+void Comms::relay(WiFiClient* client) {
+    uint8_t bufferIndex = 0;
+    // if the comms flag is 0, read from client
+    if (commsFlag == 0) {
+        // Serial.write("Read flag is 0");
+        for (int i = 0; i < BUFFER_SIZE; i++) {
+            buffer[i] = 0;
+        }
+        while (client->available() > 0) {
+            buffer[bufferIndex] = client->read();
+            bufferIndex++;
+            if (buffer[0] != 0 && buffer[0] != 13){
+                Serial.printf("First char of the buffer is: %d\n", buffer[0]);
+                commsFlag = 1;
+            }
+            esp_task_wdt_reset();
+        }
+    } else if (commsFlag == 1 && newData == 1) {
+        // Serial.write("Read flag is 1");
+
+        // Serial.write(buffer, BUFFER_SIZE);
+        newData = 1;
+        for (int i = 0; i < BUFFER_SIZE; i++){
+            localReadBuffer[i] = buffer[i];
+        }
+        Serial.write(buffer, BUFFER_SIZE);
+        commsFlag = 2;
+        
+    } else if (commsFlag == 2) { // if comms flag is 2, read from buffer and sent to source
+        // Serial.write("Read flag is 2");
+
+        for (int i = 0; i < BUFFER_SIZE; i++){
+            buffer[i] = localWriteBuffer[i];
+        }
+        Serial.println("what is about to be sent");
+        Serial.write(buffer, BUFFER_SIZE);
+        client->write(buffer, BUFFER_SIZE);
+        Serial.println("sending done");
+        // client->flush();
+        commsFlag = 0;
+    }
+    esp_task_wdt_reset();
+
     
 }
 
-
-void Comms::recvMsg(uint8_t *data, size_t len){
-  WebSerial.println("Received Data...");
-  String d = "";
-  for(int i=0; i < len; i++){
-    d += char(data[i]);
-  }
-  WebSerial.println(d);
-}

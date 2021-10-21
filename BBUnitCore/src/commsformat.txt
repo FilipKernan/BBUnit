@@ -1,0 +1,63 @@
+
+// standerd message size is 16 bytes
+
+command message
+    3 bytes of header
+        message index
+        message type
+        If part of multi part message, index in total message
+            4 bytes are the id of the multi part message, next 4 bytes are the index
+ 
+    12 byte message
+    1 byte of checksum
+
+    command message types
+        reboot 1
+        report if alive 2
+        listen for otas 3
+        report motor data 4
+        report gyro data 5
+        report odom 6
+        report currnet state 7
+        report current goal - in message contains info on what goal 8
+        set motor power 9
+        set encoder goal 10
+        set gyro goal 11
+        set pid value - will only set one value in the pid 12
+        request pid value 13
+        request message again - tcp functinality will come later 14
+        plain text 15
+        begin logging 16
+        play sound 17
+
+
+ 
+ 
+
+
+
+
+
+data message
+    3 bytes of header
+
+    12 byte message
+    1 checksum byte
+
+    data message types
+        report alive 1
+        acc listening for otas 2
+        motor data 3
+        gyro data 4
+        odom data - will be multipart 5
+        current state 6
+        current goal 7
+        acc motor power 8
+        acc encoder goal 9
+        acc gyro goal 10
+        acc pid value change 11
+        report pid value 12
+        request message again - tcp functinality will come later 13
+        
+ 
+ 

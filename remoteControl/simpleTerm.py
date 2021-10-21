@@ -1,34 +1,48 @@
-import serial
+import socket
 import time
 import math
-import binascii
+import PySimpleGUI as sg
 
+Addr = ("192.168.4.1", 80)
+messageIndex = 1
+
+def rs232_checksum(the_bytes):
+    return b'%02X' % (sum(the_bytes) & 0xFF)
 
 if __name__ == '__main__':
-    ser = serial.Serial('/dev/rfcomm0')
-    print("conntected to " + ser.name)
-    commandMethod = 128
-    while input("would you like to continue: ") == 'Y':
-        power = input("please enter the power at which the robot should run: ");
-        power = int(power, 10)
-        deltaTime = input("please enter the time in 1/10 of a sec for the robot to run: ")
-        deltaTime = int(deltaTime, 10)
-        commandList = [chr(commandMethod), chr(0), chr(deltaTime), chr(power), chr(deltaTime), chr(0), chr(deltaTime), chr(power), chr(deltaTime), chr(0)]
-        commandStr = ""
-        commandStr = commandStr.join(commandList)
-        toWrite = bytes(commandStr, encoding='utf8')
-        print(commandList)
-        print(toWrite[2:])
-        ser.flush()
-        ser.write(toWrite[1:])
-        waitTime = math.floor(deltaTime / 10) + math.floor(time.time())
-        print(waitTime)
-        while (math.floor(time.time())) < waitTime:
-            message = bytes()
-            while len(message) < 10:
-                message += ser.readline()
-            print(message)
-            print('|')
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        sg.Window(title="controler", layout=[[]], margins=(100,50))
+        s.connect(Addr)
+        print("connected")
+        while True:
+            messageType = chr(int(input("please enter your message type: "))).encode("utf-8")
+            isMessageMultiPart = input("is this message multipart(y/n): ")
+            if isMessageMultiPart == 'y':
+                isMessageMultiPart = True
+            else:
+                isMessageMultiPart = False
+            messageString = input("please enter your message contents: ")
+            msg = messageString.encode("utf-8")
+            msg += ('\0' * (12 - len(msg))).encode()
+            if isMessageMultiPart:
+                pass
+            else: 
+                mutlipartMessage = "\0".encode()
+            print(msg.decode())
+            msg = chr(messageIndex).encode("utf-8") + messageType + mutlipartMessage + msg 
+            print(msg.decode())
+            checksum = rs232_checksum(msg)
+            msg = msg + checksum
+            print(msg.decode())
+            s.send(msg)
+            print("sending message")
+            data = s.recv(32)
+            print("return message")
+            print(data.decode())
+            toContinue = input("do you want to continue(y/n): ")
+            messageIndex += 1
+            if 'n' in toContinue:
+                exit()
             
-    ser.close()
+    
     

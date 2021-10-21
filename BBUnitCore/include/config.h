@@ -1,5 +1,9 @@
 // interupt pins 18, 19, 2, 3
+
 #include <esp_task_wdt.h>
+#ifndef CONFIG
+#define CONFIG 
+
 
 
 #define LEFT_MOTOR_DIR 53
@@ -8,9 +12,9 @@
 #define LEFT_MOTOR_A 26
 #define LEFT_MOTOR_B 27
 #define LEFT_DIR -1
-volatile long leftEncoderCount = 0;
-volatile bool lastLeftA = 0;
-volatile bool lastLeftB = 0;
+extern volatile long leftEncoderCount;
+extern volatile bool lastLeftA;
+extern volatile bool lastLeftB;
 void leftEncoderChange();
 
 
@@ -19,9 +23,9 @@ void leftEncoderChange();
 #define RIGHT_MOTOR_INT 3
 #define RIGHT_MOTOR_A 24
 #define RIGHT_MOTOR_B 24
-volatile long rightEncoderCount = 0;
-volatile bool lastRightA = 0;
-volatile bool lastRightB = 0;
+extern volatile long rightEncoderCount;
+extern volatile bool lastRightA;
+extern volatile bool lastRightB;
 void rightEncoderChange();
 
 
@@ -30,9 +34,9 @@ void rightEncoderChange();
 #define FRONT_MOTOR_INT 19
 #define FRONT_MOTOR_A 28
 #define FRONT_MOTOR_B 29
-volatile long frontEncoderCount = 0;
-volatile bool lastFrontA = 0;
-volatile bool lastFrontB = 0;
+extern volatile long frontEncoderCount;
+extern volatile bool lastFrontA;
+extern volatile bool lastFrontB;
 void frontEncoderChange();
 
 #define BACK_MOTOR_DIR 51
@@ -40,16 +44,24 @@ void frontEncoderChange();
 #define BACK_MOTOR_INT 2
 #define BACK_MOTOR_A 23
 #define BACK_MOTOR_B 22
-volatile long backEncoderCount = 0;
-volatile bool lastBackA = 0;
-volatile bool lastBackB = 0;
+extern volatile long backEncoderCount;
+extern volatile bool lastBackA;
+extern volatile bool lastBackB;
 void backEncoderChange();
 
-const char* ssid     = "BR-95";
-const char* password = "StormBlessed";
 
-#define BUFFER_SIZE 32
+
+#define BUFFER_SIZE 16
 
 
 void RobotTaskLoop(void* paramaters);
 void CommsTaskLoop(void* paramaters);
+
+
+static SemaphoreHandle_t commsMutex;
+
+static SemaphoreHandle_t writeMutex;
+static SemaphoreHandle_t readMutex;
+
+
+#endif
