@@ -12,23 +12,23 @@ command message
     1 byte of checksum
 
     command message types
-        reboot 1
-        report if alive 2
-        listen for otas 3
-        report motor data 4
-        report gyro data 5
+        reboot 1 + 
+        report if alive 2 + 
+        listen for otas 3 + 
+        report motor data 4 + 
+        report gyro data 5 + 
         report odom 6
         report currnet state 7
-        report current goal - in message contains info on what goal 8
-        set motor power 9
-        set encoder goal 10
-        set gyro goal 11
-        set pid value - will only set one value in the pid 12
-        request pid value 13
+        report current goal - in message contains info on what goal 8 + 
+        set motor power 9 + 
+        set encoder goal 10 + 
+        set gyro goal 11 + 
+        set pid value - will only set one value in the pid 12 + 
+        request pid value 13 + 
         request message again - tcp functinality will come later 14
-        plain text 15
+        plain text 15 + 
         begin logging 16
-        play sound 17
+        play sound 17 +
 
 
  
