@@ -5,8 +5,8 @@
         -encoder class
         -imu class
  -comms
-    Utilize BT
-    Figure out OTA
+    comms are good, need to create byte maps and handle the inputs
+    - also create better controler that will create graphs for pid tuning
 
 
 
@@ -60,3 +60,6 @@ https://everythingesp.com/esp32-socket-server/
  -Sound board
  -Logger 
  -Sound board
+
+
+ https://openmv.io/ -- this can be used for vision

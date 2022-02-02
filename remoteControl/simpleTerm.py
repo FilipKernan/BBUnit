@@ -165,6 +165,7 @@ if __name__ == '__main__':
                 msg = messageString.encode("utf-8")
                 msg = ('\0' * (12 - len(msg))).encode() + msg
                 if isMessageMultiPart:
+                    mutlipartMessage = "\xF".encode()
                     pass
                 else: 
                     mutlipartMessage = "\0".encode()

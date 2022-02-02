@@ -41,6 +41,13 @@ volatile bool lastBackB = 0;
 const char* ssid     = "BR-95";
 const char* password = "StormBlessed";
 
+unsigned char currentCommand[BUFFER_SIZE];
+unsigned char currentCommandType = 0;
+float currentCommandData[MAX_ARRAY_LENGHT];
+
+bool newCommand = false;
+bool finishedProcessingCommand = false;
+
 WiFiServer wifiServer(80);
 
 /***
@@ -184,21 +191,104 @@ void RobotTaskLoop(void* paramaters) {
 		xSemaphoreTake(commsMutex, portMAX_DELAY);
 
 		if (comms->newData){
-			// Serial.write(comms->read(), BUFFER_SIZE);
+			Serial.write(comms->read(), BUFFER_SIZE);
+			for(int i = 0; i < BUFFER_SIZE; i++){
+				currentCommand[i] = comms->read()[i];
+			}
+			newCommand = true;
+			finishedProcessingCommand = false;
 		}
 		
-
 		xSemaphoreGive(commsMutex);
-
-		char toWrite[BUFFER_SIZE] = {'A', 'l', 'i', 'v', 'e', 'A', 'n', 'd', 'K', 'i', 'c', 'k', 'i', 'n', 'g', '!'};
+		if(!finishedProcessingCommand){
+			processCommand();
+		} else {
+			// first type command execution
+		if (newCommand) {
+			newCommand = false;
+		}
+		unsigned char toWrite[BUFFER_SIZE] = {'A', 'l', 'i', 'v', 'e', 'A', 'n', 'd', 'K', 'i', 'c', 'k', 'i', 'n', 'g', '!'};
 		xSemaphoreTake(commsMutex, portMAX_DELAY);
 
 		comms->write(toWrite);
 		xSemaphoreGive(commsMutex);
 		esp_task_wdt_reset();
+		}
+		
+		
+		
 	}
 }
 
+// can not handle multipart messages yet
+void processCommand() {
+	unsigned char messageIndex = currentCommand[0];
+	currentCommandType = currentCommand[1];
+
+	unsigned char isMultiPart = currentCommand[2];
+	switch(currentCommandType){
+		case 0: // something went wront
+			break;
+		case 1: // reboot
+			break;
+		case 2: // report alive
+			break;
+		case 3: // OTA
+			break;
+		case 4: // report motor
+		case 5: // report gyro
+			currentCommandData[0] = currentCommand[13];
+			break;
+		case 8: // report goal
+
+			break;
+		case 9: // set motor power
+			currentCommandData[0] = currentCommand[12];
+			currentCommandData[1] = currentCommand[13];
+			break;
+		case 10: // set encoder goal
+			
+		case 11: // set gyro goal
+			for(int i = 3; i < BUFFER_SIZE - 1; i++){
+				if(currentCommand[i] != 0){
+					currentCommandData[0] = currentCommand[i];
+					long goal = 0;
+					for(int j = i + 1; j < BUFFER_SIZE - 1; i++){
+						goal += int(currentCommand[j]);
+					}
+					currentCommandData[1] = goal;
+					i = BUFFER_SIZE;
+				}
+			}
+			break;
+		case 12: // set pid
+			for(int i = 3; i < BUFFER_SIZE - 1; i++){
+				if(currentCommand[i] != 0){
+					currentCommandData[0] = currentCommand[i]; // pid index
+					currentCommandData[1] = currentCommand[i + 1];
+					String value = "";
+					for(int j = i + 1; j < BUFFER_SIZE - 1; i++){
+						value += currentCommand[j];
+					}
+					currentCommandData[1] = value.toFloat();
+					i = BUFFER_SIZE;
+				}
+			}
+			break;
+		case 13: // report pid
+			break;
+		case 15: // plain text
+			// special parsing
+			break;
+		case 17: // play sound
+			currentCommandData[0] = currentCommand[13];
+			break;
+			
+	}
+	if(!(isMultiPart | 0xA)){ // change this to properly handle long messages
+		finishedProcessingCommand = true;
+	}
+}
 
 void CommsTaskLoop(void* paramaters) {
 	while(true) {

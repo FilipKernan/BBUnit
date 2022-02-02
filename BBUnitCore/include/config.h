@@ -1,6 +1,7 @@
 // interupt pins 18, 19, 2, 3
 
 #include <esp_task_wdt.h>
+#include <array>
 #ifndef CONFIG
 #define CONFIG 
 
@@ -53,9 +54,14 @@ void backEncoderChange();
 
 #define BUFFER_SIZE 16
 
+#define MAX_ARRAY_LENGHT 16
+
+
+
 
 void RobotTaskLoop(void* paramaters);
 void CommsTaskLoop(void* paramaters);
+void processCommand();
 
 
 static SemaphoreHandle_t commsMutex;

@@ -27,7 +27,7 @@ void Comms::init() {
 }
 // Are You Alive??
 // TODO: change to use write instead of print, also define packet
-int Comms::write(const char* buff) {
+int Comms::write(const unsigned char* buff) {
     // xSemaphoreTake(commsMutex, portMAX_DELAY);
 
     for (int i = 0; i < BUFFER_SIZE; i++){
@@ -41,10 +41,12 @@ int Comms::write(const char* buff) {
 }
 
 
-char* Comms::read() {
+unsigned char* Comms::read() {
     newData = 0;
     return this->localReadBuffer;
 }
+
+
 
 void Comms::relay(WiFiClient* client) {
     uint8_t bufferIndex = 0;
@@ -58,7 +60,7 @@ void Comms::relay(WiFiClient* client) {
             buffer[bufferIndex] = client->read();
             bufferIndex++;
             if (buffer[0] != 0 && buffer[0] != 13){
-                Serial.printf("First char of the buffer is: %d\n", buffer[0]);
+                // Serial.printf("input is %0X", buffer);
                 commsFlag = 1;
             }
             esp_task_wdt_reset();
