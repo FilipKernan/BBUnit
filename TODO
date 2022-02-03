@@ -2,3 +2,11 @@
 - graph of encoder position
 - graph of encoder velocity
 - ui for controling & tuning
+
+
+
+
+
+-- redo with rosserial
+-- write more complex info in ros
+-- handle rollover of the encoders
