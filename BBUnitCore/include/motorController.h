@@ -6,7 +6,7 @@ private:
     int dirPin, pwmPin;
     uint8_t num;
     long goal;
-    float kp, ki, kd;
+    float kp, ki, kd;  
     volatile long* encoderCount;
     uint8_t effort;
     int integral[10];
